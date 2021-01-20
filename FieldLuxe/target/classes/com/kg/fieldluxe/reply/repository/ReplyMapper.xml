@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="reply">
+			<!-- SELECT -->
+	<!-- 답변 목록 -->
+<select id="listReply" parameterType="com.kg.fieldluxe.reply.model.ReplyVO" resultType="com.kg.fieldluxe.reply.model.ReplyVO">
+	SELECT reply_id as replyId, inquiry_id as inquiryId, reply_content as replyContent, reply_writer as replyWriter, reply_reg_date as replyDate  
+		FROM inquiry_reply r 
+			JOIN member m 
+			ON r.reply_writer = m.email AND inquiry_id = #{inquiryId} 
+				ORDER BY reply_id
+</select>
+
+
+			<!-- INSERT -->
+	<!-- 답글 추가 -->
+<insert id="insertReply" parameterType="com.kg.fieldluxe.reply.model.ReplyVO">
+	INSERT INTO inquiry_reply (reply_reg_date, reply_id, inquiry_id, reply_writer, reply_content) 
+		VALUES (SYSDATE, reply_seq.nextval, #{inquiryId}, #{replyWriter, jdbcType=VARCHAR}, #{replyContent, jdbcType=VARCHAR})
+</insert>
+
+
+			<!-- UPDATE -->
+	<!-- 답글 수정 --> 
+<update id="updateReply" parameterType="com.kg.fieldluxe.reply.model.ReplyVO">
+	UPDATE inquiry_reply 
+		SET reply_content = #{replyContent, jdbcType=VARCHAR}, reply_reg_date = SYSDATE  
+			WHERE reply_id = #{replyId}
+</update>
+
+	<!-- 답변여부 change -->
+<update id="updateInquiry" parameterType="int">
+	UPDATE inquiry 
+		SET answer_complete = #{inquiryComplete} 
+			WHERE inquiry_id = #{inquiryId}
+</update>
+
+			<!-- DELETE -->
+	<!-- 답글 삭제 -->
+<delete id="deleteReply" parameterType="com.kg.fieldluxe.reply.model.ReplyVO" >
+	DELETE 
+		FROM inquiry_reply 
+			WHERE reply_id = #{replyId}
+</delete>
+
+</mapper>

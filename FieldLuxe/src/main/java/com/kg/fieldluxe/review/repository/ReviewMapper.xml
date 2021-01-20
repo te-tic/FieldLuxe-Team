@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kg.fieldluxe.review.repository.IReviewRepository">
+<resultMap id="ReviewMap" type="com.kg.fieldluxe.review.model.ReviewVO">
+<result property="reviewId" column="review_id" />
+<result property="productId" column="product_id" />
+<result property="productName" column="product_name" />
+<result property="reviewWriter" column="review_writer" />
+<result property="reviewTarget" column="review_target" />
+<result property="reviewContent" column="review_content" />
+<result property="reviewScore" column="review_score" />
+<result property="reviewDate" column="review_reg_date" />
+</resultMap>
+
+			<!-- SELECT -->
+	<!-- 내 리뷰 조회 -->
+<select id="getReviewList" parameterType="hashmap" resultMap="ReviewMap">
+	SELECT rnum, review_id, review_target, review_writer, product_name, review_content, review_score, review_reg_date, cnt 
+		FROM (
+				SELECT rownum rnum, product_name, review_id, review_writer, review_target, review_content, review_score, review_reg_date, cnt 
+					FROM (
+							SELECT review_id, p.product_name, r.review_writer, r.review_target, review_content, review_score, review_reg_date, 
+							(SELECT count(*)
+								FROM review WHERE review_id = r.review_id) cnt 
+									FROM review r 
+										JOIN member m 
+											ON r.review_target = m.email 
+										JOIN product_list_data p 
+											ON r.product_id = p.product_id 
+											ORDER BY review_reg_date DESC	
+							)
+			) 
+<if test="word == null">
+	WHERE rnum between (#{page}-1) * 10+1 AND ((#{page}-1) * 10+1) + 9 
+	AND review_target = #{reviewTarget}
+</if>
+
+<!-- <if test="word != null">
+	WHERE rnum BETWEEN (#{page}-1) * 10+1 AND ((#{page}-1) * 10+1) + 9 
+	AND inquiry_email LIKE '%'||#{word}||'%' OR inquiry_email LIKE '%'||#{word}||'%'
+</if> -->
+</select>
+
+	<!-- 리뷰 수 확인 -->
+<select id="getReviewCount" parameterType="string" resultType="int">
+<if test="word == null">
+	SELECT count(*) 
+		FROM review
+</if>
+
+<if test="word != null">
+	SELECT count(*) 
+		FROM review 
+			WHERE review_target LIKE '%' ||#{word}||'%' 
+			OR review_target LIKE '%' || #{word} || '%'
+</if>
+</select>
+
+
+			<!-- INSERT -->
+			
+	<!-- 리뷰 입력 -->
+<insert id="insertReview" parameterType="com.kg.fieldluxe.review.model.ReviewVO">
+	<selectKey keyProperty="reviewId" order="BEFORE" resultType="int">
+		SELECT review_seq.nextval FROM dual
+	</selectKey>
+	INSERT INTO review (review_id, product_name, review_writer, review_target, review_content, review_score, review_reg_date) 
+		VALUES (#{reviewId}, #{productName}, #{reviewWriter, jdbcType=VARCHAR}, #{reviewTarget, jdbcType=VARCHAR}, #{reviewContent, jdbcType=VARCHAR}, #{reviewScore}, SYSDATE)
+</insert>
+</mapper>

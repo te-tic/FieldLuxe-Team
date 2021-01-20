@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kg.fieldluxe.inquiry.repository.IInquiryRepository">
+<resultMap id="InquiryMap" type="com.kg.fieldluxe.inquiry.model.InquiryVO">
+<result property="inquiryId" column="inquiry_id" />
+<result property="inquiryTitle" column="inquiry_title" />
+<result property="inquiryContent" column="inquiry_content" javaType="java.lang.String" />
+<result property="inquiryEmail" column="inquiry_email" />
+<result property="inquiryDate" column="inquiry_reg_date" />
+<result property="answerNum" column="inquiry_num" />
+<result property="answerComplete" column="inquiry_complete" />
+<result property="auth" column="authority" />
+</resultMap>
+
+
+			<!-- SELECT -->
+			
+	<!-- 전체 문의글 조회 -->
+<select id="getInquiryList" parameterType="hashmap" resultMap="InquiryMap">
+	SELECT rnum, inquiry_id, inquiry_title, inquiry_content, inquiry_email, 
+			inquiry_reg_date, answer_complete, authority, cnt 
+		FROM (
+				SELECT rownum rnum, inquiry_id, inquiry_title, inquiry_content, inquiry_email, 
+			  		   inquiry_reg_date, answer_complete, authority, cnt 
+					FROM (
+							SELECT inquiry_id, inquiry_title, inquiry_content, i.inquiry_email, 
+							inquiry_reg_date, answer_complete, authority, 
+							(SELECT count(*) 
+							FROM inquiry_reply WHERE inquiry_id = i.inquiry_id) cnt 
+								FROM inquiry i 
+									JOIN member m 
+										ON i.inquiry_email = m.email 
+									JOIN authorities au 
+										ON i.inquiry_email = au.email 
+									ORDER BY inquiry_reg_date DESC
+						)
+			)
+<if test="word == null">
+	WHERE rnum between (#{page}-1) * 10+1 AND ((#{page}-1) * 10+1) + 9
+</if>
+
+<if test="word != null">
+	WHERE rnum BETWEEN (#{page}-1) * 10+1 AND ((#{page}-1) * 10+1) + 9 
+	AND inquiry_email LIKE '%'||#{word}||'%' OR inquiry_email LIKE '%'||#{word}||'%'
+</if>
+</select>
+
+	<!-- 문의글 수 확인 -->
+<select id="getInquiryCount" parameterType="string" resultType="int">
+<if test="word == null">
+	SELECT count(*) 
+		FROM inquiry
+</if>
+
+<if test="word != null">
+	SELECT count(*) 
+		FROM inquiry 
+			WHERE inquiry_email LIKE '%' ||#{word}||'%' 
+			OR inquiry_email LIKE '%' || #{word} || '%'
+</if>
+</select>
+
+	<!-- 문의글 상세보기 -->
+<select id="getInquiry" resultMap="InquiryMap" parameterType="int">
+	SELECT inquiry_id, inquiry_title, inquiry_content, inquiry_email, 
+			inquiry_reg_date, answer_complete, authority 
+			FROM inquiry i 
+				JOIN member m 
+				ON i.inquiry_email = m.email 
+				JOIN authorities au 
+				ON i.inquiry_email = au.email 
+					WHERE inquiry_id = #{inquiryId}
+</select>
+
+			<!-- INSERT -->
+
+	<!-- 문의글 입력 -->
+<insert id="insertInquiry" parameterType="com.kg.fieldluxe.inquiry.model.InquiryVO">
+	<selectKey keyProperty="inquiryId" order="BEFORE" resultType="int">
+		SELECT inquiry_seq.nextval FROM dual
+	</selectKey>
+	INSERT INTO inquiry (inquiry_id, inquiry_title, inquiry_content, inquiry_email) 
+		VALUES (#{inquiryId}, #{inquiryTitle, jdbcType=VARCHAR}, #{inquiryContent, jdbcType=CLOB}, #{inquiryEmail, jdbcType=VARCHAR})
+</insert>
+
+	
+			<!-- UPDATE -->
+			
+	<!-- 문의글 수정 -->
+<update id="updateInquiry" parameterType="com.kg.fieldluxe.inquiry.model.InquiryVO">
+	UPDATE inquiry 
+		SET inquiry_title = #{inquiryTitle}, inquiry_content = #{inquiryContent} 
+			WHERE inquiry_id = #{inquiryId}
+</update>
+
+
+			<!-- DELETE -->
+			
+	<!-- 문의글 삭제 -->
+<delete id="deleteInquiry" parameterType="int">
+	DELETE
+		FROM inquiry 
+			WHERE inquiry_id = #{inquiryId}
+</delete>
+
+	<!-- 글에 있는 답변 삭제 -->
+<delete id="deleteReply" parameterType="int">
+	DELETE
+		FROM inquiry_reply 
+			WHERE inquiry_id = #{inquiryId}
+</delete>
+	
+	
+
+</mapper>
